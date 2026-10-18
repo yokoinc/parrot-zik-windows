@@ -16,11 +16,15 @@ Application Windows pour régler un casque **Parrot Zik 3** (ou Zik 2) depuis la
 ## Installation
 
 1. Appairer le casque dans **Paramètres > Bluetooth** de Windows.
-2. Télécharger `ZikTray.exe` depuis les [Releases](../../releases) et le lancer.
+2. Télécharger `ZikTray-Setup.exe` depuis les [Releases](../../releases) et le lancer.
+
+L'installation se fait pour l'utilisateur courant, sans droits administrateur, dans `%LOCALAPPDATA%\Programs\ZikTray` : raccourci dans le menu Démarrer, option « Démarrer avec Windows », raccourci bureau facultatif. La désinstallation se fait depuis **Paramètres > Applications**.
+
+`ZikTray.exe` seul fonctionne aussi sans installation (version portable).
 
 Clic gauche sur l'icône : panneau de réglages. Clic droit : Ouvrir, Actualiser, Démarrer avec Windows, Quitter.
 
-Aucune installation de .NET n'est nécessaire : l'app utilise le .NET Framework 4 livré avec Windows 10 et 11.
+Les exe ne sont pas signés : au premier lancement, Windows SmartScreen peut afficher un avertissement (« Informations complémentaires » puis « Exécuter quand même »). Aucune installation de .NET n'est nécessaire : l'app utilise le .NET Framework 4 livré avec Windows 10 et 11.
 
 ## Compiler
 
@@ -28,7 +32,7 @@ Aucune installation de .NET n'est nécessaire : l'app utilise le .NET Framework 
 build.cmd
 ```
 
-Le script utilise le compilateur C# fourni avec Windows (`csc.exe` du .NET Framework 4), sans SDK. `make-icon.ps1` régénère `ZikTray.ico`.
+Le script compile `ZikTray.exe`, l'installateur `ZikTray-Setup.exe` (qui embarque `ZikTray.exe`) et `ZikProbe.exe` avec le compilateur C# fourni avec Windows (`csc.exe` du .NET Framework 4), sans SDK. `make-icon.ps1` régénère `ZikTray.ico`.
 
 `ZikProbe.exe` est un petit outil console de diagnostic : sans argument il affiche l'état complet du casque, sinon `ZikProbe get <chemin>` ou `ZikProbe set <chemin> <valeur>` envoie une requête brute.
 
