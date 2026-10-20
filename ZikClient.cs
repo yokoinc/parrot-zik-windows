@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Xml;
@@ -71,8 +72,8 @@ class BluetoothEndPoint : EndPoint
 class ZikClient
 {
     const int BthProtoRfcomm = 3;
-    const int PollIntervalMs = 30000;
-    const int RetryIntervalMs = 10000;
+    const int PollIntervalMs = 60000;
+    const int RetryIntervalMs = 5000;
 
     // Zik 3, Zik 2 (meme API)
     static readonly Guid[] Services = {
@@ -118,7 +119,11 @@ class ZikClient
         {
             try
             {
-                using (Socket socket = Connect(FindPairedZik()))
+                ulong address = FindPairedZik();
+                // Ne jamais appeler le casque nous-memes : une tentative de connexion quand il est eteint
+                // ou relie a un autre appareil peut perturber sa liaison audio. On attend que Windows l'ait connecte.
+                if (!IsLinkUp(address)) throw new IOException("Casque non connecte a Windows.");
+                using (Socket socket = Connect(address))
                 using (NetworkStream stream = new NetworkStream(socket))
                 {
                     Handshake(stream);
@@ -161,6 +166,40 @@ class ZikClient
     {
         Action<ZikState> handler = StateChanged;
         if (handler != null) handler(state);
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct BluetoothDeviceInfo
+    {
+        public int Size;
+        public ulong Address;
+        public uint ClassOfDevice;
+        public int Connected;
+        public int Remembered;
+        public int Authenticated;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)] public ushort[] LastSeen;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)] public ushort[] LastUsed;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 248)] public string Name;
+    }
+
+    [DllImport("BluetoothApis.dll")]
+    static extern int BluetoothGetDeviceInfo(IntPtr radio, ref BluetoothDeviceInfo info);
+
+    // Etat de la liaison Bluetooth vu par Windows (lecture locale, aucun trafic radio)
+    static bool IsLinkUp(ulong address)
+    {
+        try
+        {
+            BluetoothDeviceInfo info = new BluetoothDeviceInfo();
+            info.Size = Marshal.SizeOf(typeof(BluetoothDeviceInfo));
+            info.Address = address;
+            if (BluetoothGetDeviceInfo(IntPtr.Zero, ref info) != 0) return true;
+            return info.Connected != 0;
+        }
+        catch (Exception)
+        {
+            return true; // API indisponible : on tente la connexion comme avant
+        }
     }
 
     // Les Zik ont une adresse en 90:03:... ou A0:14:... (prefixes Parrot)
